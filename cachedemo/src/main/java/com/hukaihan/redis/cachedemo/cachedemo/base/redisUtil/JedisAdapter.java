@@ -1,7 +1,11 @@
 package com.hukaihan.redis.cachedemo.cachedemo.base.redisUtil;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -39,6 +43,29 @@ public class JedisAdapter {
 	}
 
 	/**
+	 * set
+	 *
+	 * @param key
+	 * @param value
+	 */
+	public void set(String key, String value,long time) {
+		redisTemplate.opsForValue().set(key,value,time, TimeUnit.MILLISECONDS);
+	}
+
+	public Map<Object,Object> hgetAll(String key){
+		// 相当于 hgetall
+	 	return 	redisTemplate.opsForHash().entries(key);
+	}
+
+	public void hmset (String key,Map<String,String> map){
+		redisTemplate.opsForHash().putAll(key,map);
+	}
+
+	public void hmset (String key,Map<String,String> map,long time){
+		redisTemplate.opsForHash().putAll(key,map);
+		redisTemplate.expire(key,time,TimeUnit.MILLISECONDS);
+	}
+	/**
 	 * sadd(key, value)往集合中加入一个key-value
 	 * 
 	 * @param key
@@ -70,6 +97,13 @@ public class JedisAdapter {
 	 */
 	public boolean sismember(String key, String value) {
 		return redisTemplate.opsForSet().isMember(key, value);
+	}
+
+	/**
+	 * 是否存在key
+	 */
+	public boolean isExsist(String key){
+		return redisTemplate.hasKey(key);
 	}
 
 	/**

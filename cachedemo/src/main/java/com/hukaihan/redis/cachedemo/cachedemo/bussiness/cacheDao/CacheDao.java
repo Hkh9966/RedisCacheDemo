@@ -8,6 +8,8 @@ import org.apache.ibatis.annotations.Select;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface CacheDao {
 
@@ -19,4 +21,7 @@ public interface CacheDao {
 
     @Select("select * from author where author_id = #{value}")
     Author selectAuthorById(Integer id);
+
+    @Select("select * from topic where topic_name like '%${value}%' ")
+    List<Topic> selectTopicWithPage(String topicName);
 }

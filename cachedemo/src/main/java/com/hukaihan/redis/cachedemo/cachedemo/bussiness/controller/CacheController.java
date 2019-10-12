@@ -1,6 +1,9 @@
 package com.hukaihan.redis.cachedemo.cachedemo.bussiness.controller;
 
+import com.hukaihan.redis.cachedemo.cachedemo.base.annotation.CacheSingle;
+import com.hukaihan.redis.cachedemo.cachedemo.base.baseUtil.PageUtils;
 import com.hukaihan.redis.cachedemo.cachedemo.base.redisUtil.JedisAdapter;
+import com.hukaihan.redis.cachedemo.cachedemo.base.vo.Message;
 import com.hukaihan.redis.cachedemo.cachedemo.bussiness.cacheService.CacheService;
 import com.hukaihan.redis.cachedemo.cachedemo.bussiness.model.Author;
 import com.hukaihan.redis.cachedemo.cachedemo.bussiness.model.Comment;
@@ -9,6 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.text.ParseException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/testCache/")
@@ -21,24 +27,21 @@ public class CacheController {
     JedisAdapter jedisAdapter;
 
     @RequestMapping("selectTopicById/{id}")
-    public Topic selectTopicById(@PathVariable("id")Integer id){
-        return cacheServiceImpl.selectTopicById(id);
+    public Message selectTopicById(@PathVariable("id")Integer id){
+        if(cacheServiceImpl.selectTopicById(id)==null){
+            return new Message().ok(200,"不存在数据");
+        }
+        return new Message().ok(200,"成功").addData("topic",cacheServiceImpl.selectTopicById(id));
     }
     @RequestMapping("selectCommentById/{id}")
     public Comment selectCommentById(@PathVariable("id")Integer id){
         return cacheServiceImpl.selectCommentById(id);
     }
-    @RequestMapping("selectAuthorById/{id}")
-    public Author selectAuthorById(@PathVariable("id")Integer id){
-        return cacheServiceImpl.selectAuthorById(id);
+    //用hash方式缓存查询
+    @RequestMapping("selectCommentByHash/{id}")
+    public Message selectCommentByHash(@PathVariable("id")Integer id) throws ParseException, IllegalAccessException {
+        return new Message().ok(200,"成功").addData("comment",cacheServiceImpl.selectCommentByHash(id));
     }
 
-    @RequestMapping("redis/set/{key}/{value}")
-    public void setKey(@PathVariable("key")String key,@PathVariable("value")String value){
-        jedisAdapter.set(key,value);
-    }
-    @RequestMapping("redis/get/{key}")
-    public String get(@PathVariable("key")String key){
-        return jedisAdapter.get(key);
-    }
+
 }

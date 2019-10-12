@@ -7,6 +7,7 @@ import com.hukaihan.redis.cachedemo.cachedemo.base.annotation.CacheSingle;
 import com.hukaihan.redis.cachedemo.cachedemo.base.annotation.SysLog;
 import com.hukaihan.redis.cachedemo.cachedemo.base.baseUtil.HttpContextUtils;
 import com.hukaihan.redis.cachedemo.cachedemo.base.redisUtil.JedisAdapter;
+import com.hukaihan.redis.cachedemo.cachedemo.base.vo.Message;
 import com.hukaihan.redis.cachedemo.cachedemo.bussiness.model.Topic;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -40,30 +41,40 @@ public class CacheAOP {
     }
 
     @Around("pointCut()")
-    public Object redisCache(ProceedingJoinPoint joinPoint){
+    public Object redisCache(ProceedingJoinPoint joinPoint) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         MethodSignature signature =(MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
+        String keyName = null;
         //如果需要缓存
         if(method.isAnnotationPresent(CacheSingle.class)){
             CacheSingle annotation= method.getAnnotation(CacheSingle.class);
             Object[] args = joinPoint.getArgs();
             if ((args != null && args.length == 1 )&&( args[0].getClass() == Integer.class
             || args[0].getClass() == String.class)) {
-                String json = jedisAdapter.get(annotation.tableName() + SPLITER + args[0]);
-                if(!StringUtils.isEmpty(json)){
-                    Object o = JSON.parseObject(json, annotation.clazz());
-                    return o;
+                keyName = annotation.tableName() + SPLITER + args[0];
+                String json = jedisAdapter.get(keyName);
+                if(jedisAdapter.isExsist(keyName)){
+                    if(json.equals("null")){
+                        return null;
+                    }
+                    return  JSON.parseObject(json, annotation.clazz());
                 }else{
                     try {
                         Object proceed = joinPoint.proceed();
-                        jedisAdapter.set(annotation.tableName()+SPLITER+(Integer)args[0],JSON.toJSONString(proceed));
-                         return proceed;
+                        //防止缓存击穿
+                        if(proceed!=null){
+                            jedisAdapter.set(annotation.tableName()+SPLITER+args[0],JSON.toJSONString(proceed));
+                        }else{
+                            jedisAdapter.set(annotation.tableName()+SPLITER+args[0],"null",1000*60);
+                            proceed = null;
+                        }
+                        return proceed;
                     } catch (Throwable throwable) {
                         throwable.printStackTrace();
                     }
                 }
             }
         }
-        return new Object();
+        return null;
     }
 }
